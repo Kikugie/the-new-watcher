@@ -6,7 +6,9 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.int
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalMember
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
 import com.kotlindiscord.kord.extensions.extensions.Extension
+import com.kotlindiscord.kord.extensions.extensions.ephemeralSlashCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
+import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondEphemeral
 import dev.kord.common.Color
 import dev.kord.common.entity.Permission
@@ -43,7 +45,7 @@ class TicketExtension : Extension() {
     }
 
     override suspend fun setup() {
-        publicSlashCommand(::TicketCreateArgs) {
+        ephemeralSlashCommand(::TicketCreateArgs) {
             name = "ticket"
             description = "Create a ticket"
 
@@ -77,11 +79,11 @@ class TicketExtension : Extension() {
                         }
                     }
                 }
-                respondEphemeral { content = "Ticket created!" }
+                respond { content = "Ticket created!" }
             }
         }
 
-        publicSlashCommand(::TicketProceedArgs) {
+        ephemeralSlashCommand(::TicketProceedArgs) {
             name = "proceed"
             description = "Add applicant to the channel"
 
@@ -98,7 +100,7 @@ class TicketExtension : Extension() {
                         ticket.addApplicant(ticket.application.tag)
                     }
                     if (member != null) {
-                        respondEphemeral { content = "Applicant added!" }
+                        respond { content = "Applicant added!" }
                         channel.createMessage {
                             content =
                                 "Yo, ${member.mention}\n" + "This is your application channel\n" +
@@ -111,10 +113,10 @@ class TicketExtension : Extension() {
                                         }"
                         }
                     } else {
-                        respondEphemeral { content = "Something went wrong!" }
+                        respond { content = "Something went wrong!" }
                     }
                 } else {
-                    respondEphemeral { content = "This channel is not a ticket!" }
+                    respond { content = "This channel is not a ticket!" }
                 }
             }
         }
