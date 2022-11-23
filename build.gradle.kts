@@ -35,6 +35,11 @@ dependencies {
     implementation(libs.kord.extensions)
     implementation(libs.kotlin.stdlib)
     implementation(libs.kx.ser)
+    implementation(libs.ktor)
+
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.14.0")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.14.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.14.0")
 
     // Logging dependencies
     implementation(libs.groovy)
@@ -45,7 +50,7 @@ dependencies {
 
 application {
     // This is deprecated, but the Shadow plugin requires it
-    mainClassName = "template.AppKt"
+    mainClassName = "me.kikugie.wavebot.AppKt"
 }
 
 gitHooks {
@@ -53,6 +58,9 @@ gitHooks {
         mapOf("pre-commit" to "detekt")
     )
 }
+
+tasks.getByPath("detekt").onlyIf { project.hasProperty("runDetekt") }
+
 
 tasks.withType<KotlinCompile> {
     // Current LTS version of Java
@@ -64,7 +72,7 @@ tasks.withType<KotlinCompile> {
 tasks.jar {
     manifest {
         attributes(
-            "Main-Class" to "template.AppKt"
+            "Main-Class" to "me.kikugie.wavebot.AppKt"
         )
     }
 }
