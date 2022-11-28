@@ -7,9 +7,7 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalMember
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.ephemeralSlashCommand
-import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
-import com.kotlindiscord.kord.extensions.types.respondEphemeral
 import dev.kord.common.Color
 import dev.kord.common.entity.Permission
 import dev.kord.common.entity.Snowflake
@@ -28,13 +26,10 @@ import me.kikugie.wavebot.utils.Config
 
 class TicketExtension : Extension() {
     override val name = "ticket"
-    val activeTickets = mutableMapOf<Snowflake, Ticket>()
-    val embedGroups = listOf(
-        listOf(0, 1, 2, 3, 4, 5, 6, 16), listOf(7, 8, 9, 10, 11), listOf(12, 13, 15), listOf(14)
-    )
+    private val activeTickets = mutableMapOf<Snowflake, Ticket>()
 
-    fun MessageCreateBuilder.generateContent(application: Application) {
-        embedGroups.forEach { group ->
+    private fun MessageCreateBuilder.generateContent(application: Application) {
+        Config.instance.applicationLayouts[application.type]?.forEach { group ->
             embed {
                 color = Color(0xFF0000)
                 group.forEach { index ->
@@ -56,29 +51,37 @@ class TicketExtension : Extension() {
             action {
                 val application = Application.fetch(arguments.row, arguments.type)
                 val ticket = Ticket(application)
-                var appFiles = listOf<String>()
-                if (application.values[17].length != 1) {
-                    appFiles = application.values[17].split(", ").map {
-                        "https://drive.google.com/uc?export=view&id=" + it.substring(33)
-                    }
-                }
-                val client = HttpClient(CIO)
-                println(appFiles)
 
                 ticket.createChannel(arguments.nameOverride)
-                activeTickets += ticket.channel!!.id to ticket
-
                 ticket.channel!!.createMessage {
                     generateContent(application)
                 }
-                if (appFiles.isNotEmpty()) {
+
+                val fileField = Config.instance.fileIndexes[application.type]!!
+                if (application.values[fileField].length != 1) {
+                    val appFiles = application.values[fileField].split(",").map { it.substring(33) }
+
+                    val client = HttpClient(CIO)
                     ticket.channel!!.createMessage {
+                        var succeededTimes = 0
                         appFiles.forEach {
-                            val byteChannel = client.get(it).bodyAsChannel()
-                            addFile(it.substring(44) + ".png", ChannelProvider { byteChannel })
+                            if (it.matches(Regex("https://drive\\.google\\.com/open\\?id=.+"))) {
+                                val id = it.substring(33)
+                                val byteChannel =
+                                    client.get("https://drive.google.com/uc?export=view&id=$id}").bodyAsChannel()
+                                addFile("$id.png", ChannelProvider { byteChannel })
+                                succeededTimes++
+                            }
+                        }
+                        if (succeededTimes == 0) {
+                            content = "*Failed to add images*"
+                        } else if (succeededTimes != appFiles.size) {
+                            content = "*Failed to add some images*"
                         }
                     }
                 }
+
+                activeTickets += ticket.channel!!.id to ticket
                 respond { content = "Ticket created!" }
             }
         }
@@ -100,6 +103,7 @@ class TicketExtension : Extension() {
                         ticket.addApplicant(ticket.application.tag)
                     }
                     if (member != null) {
+                        activeTickets -= channel.id
                         respond { content = "Applicant added!" }
                         channel.createMessage {
                             content =

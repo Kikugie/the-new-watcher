@@ -15,7 +15,9 @@ data class Config(
     val appCategory: Snowflake,
     val archiveCategory: Snowflake,
     val applicantRoleId: Snowflake,
-    val vcChannelId: Snowflake
+    val vcChannelId: Snowflake,
+    val applicationLayouts: Map<String, List<List<Int>>>,
+    val fileIndexes: Map<String, Int>
 ) {
     companion object {
         private val mapper = ObjectMapper(YAMLFactory()).registerModule(
