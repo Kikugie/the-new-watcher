@@ -19,6 +19,7 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
+import kotlinx.coroutines.processNextEventInCurrentThread
 import me.kikugie.wavebot.TEST_SERVER_ID
 import me.kikugie.wavebot.ticket.Application
 import me.kikugie.wavebot.ticket.Ticket
@@ -59,24 +60,24 @@ class TicketExtension : Extension() {
 
                 val fileField = Config.instance.fileIndexes[application.type]!!
                 if (application.values[fileField].length != 1) {
-                    val appFiles = application.values[fileField].split(",").map { it.substring(33) }
+                    val appFiles = application.values[fileField].split(",", " ", "\n")
+                    println(appFiles)
 
                     val client = HttpClient(CIO)
                     ticket.channel!!.createMessage {
-                        var succeededTimes = 0
+                        val failedRequests = mutableListOf<String>()
                         appFiles.forEach {
                             if (it.matches(Regex("https://drive\\.google\\.com/open\\?id=.+"))) {
                                 val id = it.substring(33)
                                 val byteChannel =
                                     client.get("https://drive.google.com/uc?export=view&id=$id}").bodyAsChannel()
                                 addFile("$id.png", ChannelProvider { byteChannel })
-                                succeededTimes++
+                            } else {
+                                failedRequests.add(it)
                             }
                         }
-                        if (succeededTimes == 0) {
-                            content = "*Failed to add images*"
-                        } else if (succeededTimes != appFiles.size) {
-                            content = "*Failed to add some images*"
+                        if (failedRequests.isNotEmpty()) {
+                            content = "Failed to download the following files:\n${failedRequests.joinToString("\n")}"
                         }
                     }
                 }
