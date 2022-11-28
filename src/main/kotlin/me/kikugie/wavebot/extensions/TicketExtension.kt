@@ -61,15 +61,14 @@ class TicketExtension : Extension() {
                 val fileField = Config.instance.fileIndexes[application.type]!!
                 if (application.values[fileField].length != 1) {
                     if (application.values[fileField].matches(Regex("(https://drive\\.google\\.com/open\\?id=\\S+).*"))) {
-                        val appFiles = application.values[fileField].split(",", " ", "\n")
+                        val appFiles = application.values[fileField].split(",").map { it.split("=")[1] }
 
                         val client = HttpClient(CIO)
                         ticket.channel!!.createMessage {
                             appFiles.forEach {
-                                val id = it.substring(33)
                                 val byteChannel =
-                                    client.get("https://drive.google.com/uc?export=view&id=$id}").bodyAsChannel()
-                                addFile("$id.png", ChannelProvider { byteChannel })
+                                    client.get("https://drive.google.com/uc?export=view&id=$it").bodyAsChannel()
+                                addFile("$it.png", ChannelProvider { byteChannel })
                             }
                         }
                     } else {
