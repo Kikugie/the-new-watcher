@@ -60,24 +60,25 @@ class TicketExtension : Extension() {
 
                 val fileField = Config.instance.fileIndexes[application.type]!!
                 if (application.values[fileField].length != 1) {
-                    val appFiles = application.values[fileField].split(",", " ", "\n")
-                    println(appFiles)
+                    if (application.values[fileField].matches(Regex("(https://drive\\.google\\.com/open\\?id=\\S+).*"))) {
+                        val appFiles = application.values[fileField].split(",", " ", "\n")
 
-                    val client = HttpClient(CIO)
-                    ticket.channel!!.createMessage {
-                        val failedRequests = mutableListOf<String>()
-                        appFiles.forEach {
-                            if (it.matches(Regex("https://drive\\.google\\.com/open\\?id=.+"))) {
+                        val client = HttpClient(CIO)
+                        ticket.channel!!.createMessage {
+                            appFiles.forEach {
                                 val id = it.substring(33)
                                 val byteChannel =
                                     client.get("https://drive.google.com/uc?export=view&id=$id}").bodyAsChannel()
                                 addFile("$id.png", ChannelProvider { byteChannel })
-                            } else {
-                                failedRequests.add(it)
                             }
                         }
-                        if (failedRequests.isNotEmpty()) {
-                            content = "Failed to download the following files:\n${failedRequests.joinToString("\n")}"
+                    } else {
+                        ticket.channel!!.createMessage {
+                            val index = Config.instance.fileIndexes[application.type]!!
+                            embed {
+                                color = Color(0xFF0000)
+                                field { name = application.keys[index]; value = application.values[index] }
+                            }
                         }
                     }
                 }
